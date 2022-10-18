@@ -10,6 +10,6 @@ The GUI of the software is implemented using CustomTkinter (https://github.com/T
 
 Applications of PixCrypt:-
 Sensitive images can be encrypted and :-
-1) Sent as an email to the receiver
+1) Sent as an email attatchment to the receiver.
 2) Given to the receiver using a pendrive containing the encrypted .bin files.
 3) Stored in the user's pc as encrypted files and delete the original files.
