@@ -1,38 +1,72 @@
-def encrypt(byte):
-        loc=filedialog.askopenfilename(filetypes=(("Image files",("*.jpg","*.png","*.jpeg")),))
-        with open (loc,'rb') as f:
-                img=base64.b64encode(f.read())
+def files():
+        loc=filedialog.askopenfilenames(filetypes=(("Image files",("*.jpg","*.png","*.jpeg")),))
+        file_size=0
+        for i in loc:
+                file_size+=os.path.getsize(i)
+        if(file_size<2097152):
+                encrypt(loc,32)
+        elif(file_size<10485760):
+                encrypt(loc,24)
+        else:
+                encrypt(loc,16)
+def encrypt(loc,byte):
+        count=1
+        files=[]
         key = get_random_bytes(byte)
-        cipher = AES.new(key, AES.MODE_EAX)
-        ciphertext, tag = cipher.encrypt_and_digest(img)
-        eloc=os.path.dirname(os.path.abspath(loc))+"\Encrypted Image.bin"
-        with open(eloc, "wb") as f:
-                f.write(cipher.nonce)
-                f.write(tag)
-                f.write(key)
-                f.write(ciphertext)
-        en_successful(eloc)
-def decrypt():
-        loc=filedialog.askopenfilename(filetypes=(("Bin files","*.bin"),))
-        for byte in [16,24,32]:
+        for i in loc:
+                with open (i,'rb') as f:
+                        img=base64.b64encode(f.read())
+                cipher = AES.new(key, AES.MODE_EAX)
+                ciphertext, tag = cipher.encrypt_and_digest(img)
+                eloc=os.path.dirname(os.path.abspath(i))+"\Encrypted Image"+str(count)+".bin"
+                files.append(eloc)
+                with open(eloc, "wb") as f:
+                        f.write(cipher.nonce)
+                        f.write(tag)
+                        f.write(ciphertext)
+                count+=1
+        en_successful(files,key)
+def decrypt(key):
+        loc=filedialog.askopenfilenames(filetypes=(("Bin files","*.bin"),))
+        count=1
+        files=[]
+        for i in loc:
                 try:  
-                        with open(loc, "rb") as f:
+                        with open(i, "rb") as f:
                                 nonce=f.read(16)
                                 tag=f.read(16)
-                                key=f.read(byte)
                                 ciphertext=f.read(-1)
                                 cipher = AES.new(key, AES.MODE_EAX, nonce)
                                 img=base64.b64decode(cipher.decrypt_and_verify(ciphertext, tag))
-                        deloc=os.path.dirname(os.path.abspath(loc))+"\Decrypted Image.jpg"
+                        deloc=os.path.dirname(os.path.abspath(i))+"\Decrypted Image"+str(count)+".jpg"
+                        files.append(deloc)
                         with open(deloc, "wb") as f:
                                 f.write(img)
-                        dec_successful(deloc)
-                        break
                 except:
-                        if(byte==32):
-                                error()
-                        else:
-                                pass
+                        error()
+                count+=1
+        dec_successful(files)
+
+def get_key():
+        gk=CTk()
+        gk.focus_force()
+        gk.geometry('500x200')
+        gk.title('PixCrypt')
+
+        k=StringVar()
+
+        def key():
+                key=k.get()
+                key=key.encode()
+                key=key.decode('unicode-escape').encode('ISO-8859-1')
+                decrypt(key)
+                
+        
+        lab_1=CTkLabel(gk,text='Enter Key',fg_color=None,text_color="white",text_font=('bold',35)).place(relx=0.5,y=50,anchor='center')
+        ent_1=CTkEntry(gk,textvar=k,fg_color='white',corner_radius=8,text_color='black',width=200).place(relx=0.5,y=100,anchor='center')
+        but_1=CTkButton(gk,text='Decrypt',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[gk.destroy(),key()]).place(relx=0.5,y=150,anchor='center')
+        gk.mainloop()
+
 def email(loc):
                 
         em=CTk()
@@ -54,15 +88,16 @@ def email(loc):
                 mail['To']=receiver
                 mail['Subject']="File"
 
-                attatchment=MIMEBase('application','octet-stream')
+                for i in loc:
+                        attatchment=MIMEBase('application','octet-stream')
 
-                with open(loc , "rb") as f:
-                    attatchment.set_payload(f.read())
+                        with open(i ,"rb") as f:
+                            attatchment.set_payload(f.read())
 
-                encoders.encode_base64(attatchment)
-                attatchment.add_header("Content-Disposition","attatchment;filename=File.bin")
+                        encoders.encode_base64(attatchment)
+                        attatchment.add_header("Content-Disposition","attatchment;filename=File.bin")
 
-                mail.attach(attatchment)
+                        mail.attach(attatchment)
 
                 smtp=smtplib.SMTP('smtp.gmail.com',587)
                 smtp.starttls()
@@ -92,18 +127,26 @@ def email(loc):
         em.mainloop()
 
 def display(loc):
-        img=Image.open(loc)
-        img.show()
+        for i in loc:
+                img=Image.open(i)
+                img.show()
         os._exit(0)
 
-def en_successful(loc):
+def en_successful(loc,key):
         suc=CTk()
         suc.focus_force()
-        suc.geometry('500x200')
+        suc.geometry('600x300')
         suc.title('PixCrypt')
+        key=str(key)
+        key=key.lstrip("'b")
+        key=key.rstrip("'")
+        keyvar=StringVar()
+        keyvar.set(key)
         lab_1=CTkLabel(suc,text='Encryption Successful',fg_color=None,text_color="white",text_font=('bold',35)).place(relx=0.5,y=75,anchor='center')
-        but_1=CTkButton(suc,text='Exit',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.75,y=150,anchor='center')
-        but_2=CTkButton(suc,text='Send as Email',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[suc.destroy(),email(loc)]).place(relx=0.25,y=150,anchor='center')
+        lab_2=CTkLabel(suc,text='Cipher Key:-',fg_color=None,text_color="white",text_font=('bold',25)).place(relx=0.5,y=150,anchor='center')
+        ent_1=CTkEntry(suc,textvar=keyvar,text_font=('bold',10),relief='flat',width=300,state='readonly',readonlybackground='black',fg_color='black',bg_color='white').place(relx=0.5,y=200,anchor='center')
+        but_1=CTkButton(suc,text='Exit',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.75,y=250,anchor='center')
+        but_2=CTkButton(suc,text='Send as Email',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[suc.destroy(),email(loc)]).place(relx=0.25,y=250,anchor='center')
         suc.mainloop()
         
 def dec_successful(loc):
@@ -113,7 +156,7 @@ def dec_successful(loc):
         suc.title('PixCrypt')
         lab_1=CTkLabel(suc,text='Decryption Successful',fg_color=None,text_color="white",text_font=('bold',35)).place(relx=0.5,y=75,anchor='center')
         but_1=CTkButton(suc,text='Exit',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.75,y=150,anchor='center')
-        but_2=CTkButton(suc,text='View Image',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[suc.destroy(),display(loc)]).place(relx=0.25,y=150,anchor='center')
+        but_2=CTkButton(suc,text='View Images',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[suc.destroy(),display(loc)]).place(relx=0.25,y=150,anchor='center')
         suc.mainloop()
 
 def em_successful():
@@ -131,20 +174,18 @@ def error():
         err.geometry('500x250')
         err.title('PixCrypt')
         lab_1=CTkLabel(err,text='Error',fg_color=None,text_color="white",text_font=('bold',40)).place(relx=0.5,y=50,anchor='center')
-        lab_2=CTkLabel(err,text='Encrypted file\nhas been tampered',fg_color=None,text_color="red",text_font=('bold',20)).place(relx=0.5,y=125,anchor='center')
+        lab_2=CTkLabel(err,text='Invalid key',fg_color=None,text_color="red",text_font=('bold',20)).place(relx=0.5,y=125,anchor='center')
         but_1=CTkButton(err,text='Home',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[err.destroy(),main()]).place(relx=0.25,y=200,anchor='center')
         but_2=CTkButton(err,text='Exit',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.75,y=200,anchor='center')
         err.mainloop()
 def main():
     main=CTk()
-    main.geometry('500x500')
+    main.geometry('500x400')
     main.title('PixCrypt')
-    lab_1=CTkLabel(main,text='PixCrypt\nImage Encrypter',fg_color=None,text_color="white",text_font=('bold',40)).place(relx=0.5,y=80,anchor='center')
-    but_1=CTkButton(main,text='Encrypt\n(128 bit)',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),encrypt(16)]).place(relx=0.25,y=200,anchor='center')
-    but_2=CTkButton(main,text='Encrypt\n(192 bit)',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),encrypt(24)]).place(relx=0.75,y=200,anchor='center')
-    but_3=CTkButton(main,text='Encrypt\n(256 bit)',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),encrypt(32)]).place(relx=0.25,y=350,anchor='center')
-    but_4=CTkButton(main,text='Decrypt',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),decrypt()]).place(relx=0.75,y=350,anchor='center')
-    but_5=CTkButton(main,text='Exit',fg_color='black',text_color="white",text_font=('bold',20),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.5,y=450,anchor='center')
+    lab_1=CTkLabel(main,text='PixCrypt\nImage Encrypter',fg_color=None,text_color="white",text_font=('bold',45)).place(relx=0.5,y=80,anchor='center')
+    but_1=CTkButton(main,text='Encrypt',fg_color='black',text_color="white",text_font=('bold',30),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),files()]).place(relx=0.25,y=220,anchor='center')
+    but_2=CTkButton(main,text='Decrypt',fg_color='black',text_color="white",text_font=('bold',30),corner_radius=8,hover_color="#545352",command=lambda:[main.destroy(),get_key()]).place(relx=0.75,y=220,anchor='center')
+    but_3=CTkButton(main,text='Exit',fg_color='black',text_color="white",text_font=('bold',30),corner_radius=8,hover_color="#545352",command=lambda:[os._exit(0)]).place(relx=0.5,y=320,anchor='center')
     main.mainloop()
 
 from tkinter import*
