@@ -8,6 +8,8 @@ The software can also be used to decrypt the image at the receiver's end and vie
 
 The GUI of the software is implemented using CustomTkinter (https://github.com/TomSchimansky/CustomTkinter).
 
+Unzip the folder and run the .exe file.
+
 Applications of PixCrypt:-
 Sensitive images can be encrypted and :-
 1) Sent as an email attatchment to the receiver.
