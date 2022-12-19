@@ -6,6 +6,8 @@ The program automatically decides between 126/192/256 bit AES based on the file 
 
 The software can also be used to decrypt the image at the receiver's end and view the decrypted image.
 
+After encryption, the key generated can be shared with the receiver in order to decrypt the file.
+
 The GUI of the software is implemented using CustomTkinter (https://github.com/TomSchimansky/CustomTkinter).
 
 Unzip the folder and run the .exe file.
